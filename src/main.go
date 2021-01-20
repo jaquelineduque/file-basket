@@ -55,7 +55,7 @@ func uploadFile(w http.ResponseWriter, r *http.Request) {
 }
 
 func retrieveFile() http.Handler {
-	return http.StripPrefix("/images/", http.FileServer(http.Dir("./images")))
+	return http.StripPrefix("/v1/files/", http.FileServer(http.Dir("./images")))
 }
 
 func main() {
@@ -64,6 +64,6 @@ func main() {
 	router := mux.NewRouter().StrictSlash(true)
 	router.HandleFunc("/v1/files", uploadFile).
 		Methods("POST")
-	router.PathPrefix("/images/").Handler(retrieveFile())
+	router.PathPrefix("/v1/files/").Handler(retrieveFile()).Methods("GET")
 	http.ListenAndServe(port, router)
 }

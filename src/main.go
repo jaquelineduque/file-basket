@@ -34,19 +34,19 @@ func uploadFile(w http.ResponseWriter, r *http.Request) {
 
 	defer file.Close()
 
-	nomeCompletoArquivo := diretorio + "/" + handler.Filename
+	completeFilePath := diretorio + "/" + handler.Filename
 	fmt.Printf("Uploaded File: %+v\n", handler.Filename)
 	fmt.Printf("File Size: %+v\n", handler.Size)
 	fmt.Printf("MIME Header: %+v\n", handler.Header)
 
-	dst, err := os.Create(nomeCompletoArquivo)
-	defer dst.Close()
+	destinyPath, err := os.Create(completeFilePath)
+	defer destinyPath.Close()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	if _, err := io.Copy(dst, file); err != nil {
+	if _, err := io.Copy(destinyPath, file); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -54,7 +54,7 @@ func uploadFile(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Successfully Uploaded File on\n")
 }
 
-func file() http.Handler {
+func retrieveFile() http.Handler {
 	return http.StripPrefix("/images/", http.FileServer(http.Dir("./images")))
 }
 
@@ -64,6 +64,6 @@ func main() {
 	router := mux.NewRouter().StrictSlash(true)
 	router.HandleFunc("/v1/files", uploadFile).
 		Methods("POST")
-	router.PathPrefix("/images/").Handler(file())
+	router.PathPrefix("/images/").Handler(retrieveFile())
 	http.ListenAndServe(port, router)
 }

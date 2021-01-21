@@ -3,9 +3,11 @@ package main
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 
 	"github.com/gorilla/mux"
 )
@@ -53,6 +55,22 @@ func uploadFile(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Fprintf(w, "Successfully Uploaded File on\n")
 }
+func retrieveFilePaths(w http.ResponseWriter, r *http.Request) {
+	protocol := ""
+	if r.TLS == nil {
+		protocol = "http://"
+	} else {
+		protocol = "https://"
+	}
+
+	params := mux.Vars(r)
+	id := params["id"]
+	dir := "./images/" + id
+	files, _ := ioutil.ReadDir(dir)
+	for _, file := range files {
+		fmt.Println(protocol + filepath.Join(r.Host, r.URL.Path, file.Name()))
+	}
+}
 
 func retrieveFile() http.Handler {
 	return http.StripPrefix("/v1/files/", http.FileServer(http.Dir("./images")))
@@ -64,6 +82,8 @@ func main() {
 	router := mux.NewRouter().StrictSlash(true)
 	router.HandleFunc("/v1/files", uploadFile).
 		Methods("POST")
+	router.HandleFunc("/v1/files/{id}", retrieveFilePaths).
+		Methods("GET")
 	router.PathPrefix("/v1/files/").Handler(retrieveFile()).Methods("GET")
 	http.ListenAndServe(port, router)
 }

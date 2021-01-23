@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 
 	"github.com/gorilla/mux"
 )
@@ -26,6 +27,14 @@ func uploadFile(w http.ResponseWriter, r *http.Request) {
 
 	r.ParseForm()
 	id := r.FormValue("id")
+	if id != "" {
+		r, _ := regexp.Compile("^([A-z0-9-]+)$")
+		if !r.MatchString(id) {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("Id should contains only letters, numbers and hyphen"))
+			return
+		}
+	}
 	diretorio := "images/" + id
 
 	err = os.MkdirAll(diretorio, os.ModePerm)
@@ -103,7 +112,7 @@ func main() {
 	router := mux.NewRouter().StrictSlash(true)
 	router.HandleFunc("/v1/files", uploadFile).
 		Methods("POST")
-	router.HandleFunc("/v1/files/{id}", retrieveFilePaths).
+	router.HandleFunc("/v1/files/{id:[A-z0-9-]+}", retrieveFilePaths).
 		Methods("GET")
 	router.PathPrefix("/v1/files/").Handler(retrieveFile()).Methods("GET")
 	http.ListenAndServe(port, router)

@@ -12,7 +12,22 @@ import (
 	"regexp"
 
 	"github.com/gorilla/mux"
+	"github.com/joho/godotenv"
 )
+
+func init() {
+	if err := godotenv.Load(); err != nil {
+		panic("No .env file found")
+	}
+}
+
+func getDir() string {
+	rootDir := os.Getenv("API_ROOT_DIRECTORY")
+	if rootDir == "" {
+		rootDir = "./images/"
+	}
+	return rootDir
+}
 
 func uploadFile(w http.ResponseWriter, r *http.Request) {
 	// Maximum upload of 10 MB files
@@ -35,7 +50,8 @@ func uploadFile(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	diretorio := "images/" + id
+	rootDir := getDir()
+	diretorio := rootDir + id
 
 	err = os.MkdirAll(diretorio, os.ModePerm)
 	if err != nil {
@@ -76,7 +92,9 @@ func retrieveFilePaths(w http.ResponseWriter, r *http.Request) {
 
 	params := mux.Vars(r)
 	id := params["id"]
-	dir := "./images/" + id
+
+	rootDir := getDir()
+	dir := rootDir + id
 	files, _ := ioutil.ReadDir(dir)
 
 	var arquivos []Path
@@ -103,11 +121,16 @@ func retrieveFilePaths(w http.ResponseWriter, r *http.Request) {
 }
 
 func retrieveFile() http.Handler {
-	return http.StripPrefix("/v1/files/", http.FileServer(http.Dir("./images")))
+
+	return http.StripPrefix("/v1/files/", http.FileServer(http.Dir(getDir())))
 }
 
 func main() {
-	port := ":8080"
+	port := os.Getenv("API_PORT")
+	if port == "" {
+		port = "8080"
+	}
+
 	log.Println("listening on", port)
 	router := mux.NewRouter().StrictSlash(true)
 	router.HandleFunc("/v1/files", uploadFile).
@@ -115,5 +138,5 @@ func main() {
 	router.HandleFunc("/v1/files/{id:[A-z0-9-]+}", retrieveFilePaths).
 		Methods("GET")
 	router.PathPrefix("/v1/files/").Handler(retrieveFile()).Methods("GET")
-	http.ListenAndServe(port, router)
+	http.ListenAndServe(":"+port, router)
 }
